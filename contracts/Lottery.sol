@@ -1,22 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity ^0.8.9;
 
-contract Lottery {
+contract Lottery{
+    
+    address public admin; 
+    address[] public players;
 
-    // Initializing the state variables
-    uint winningNumber = 10;
+   constructor() {
+        admin = msg.sender;
+    }
+    
+    function enter() public payable{
+        require(msg.value >= 1 ether, "You need to put in One or more Ether");
+        players.push(msg.sender);
+    }
+    
+    function random() private view returns(uint){
+        return  uint (keccak256(abi.encode(block.timestamp,  players)));
+    }
 
-    uint randNonce = 0;
- 
-// Defining a function to generate
-// a random number and comparing the 
-// number to the winning number
-function randMod(uint _modulus) internal returns(bool) {
-   
-   // increase nonce
-   randNonce++; 
-   return winningNumber == uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, randNonce))) % _modulus;
- }
+    modifier restricted(){
+        require(msg.sender == admin, "Only the deployer of this contract can use this function");
+        _;
+    }
+
+    function pickWinner() public restricted{
+        uint index = random() % players.length;
+        payable (players[index]).transfer(address(this).balance);
+    }
+
 
 }
